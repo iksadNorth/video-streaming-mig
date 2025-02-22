@@ -37,7 +37,7 @@ class DownLoader:
         headers['range'] = f'bytes={start}-{end}'
         return headers
 
-    async def download_part(self, session, url, headers, part_num):
+    async def download_part(self, session, url, headers, part_num, video_id):
         range = headers.get('range')
         part_file_path = self.get_part_file_path(video_id, part_num)
         print(f"{part_file_path} 다운로드 시작: range|{range}")
@@ -79,7 +79,7 @@ class DownLoader:
 
             # 비동기 요청 전송
             tasks = [
-                self.download_part(session, url, header, idx) 
+                self.download_part(session, url, header, idx, video_id) 
                 for idx, header in enumerate(parts)
             ]
             await asyncio.gather(*tasks)
