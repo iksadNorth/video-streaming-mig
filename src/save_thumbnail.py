@@ -43,4 +43,4 @@ async def extract_frame_parallel(id, num_thumbnail=10):
 
 
 if __name__ == '__main__':
-    asyncio.run(extract_frame_parallel('0001'))
+    asyncio.run(extract_frame_parallel('9202'))
