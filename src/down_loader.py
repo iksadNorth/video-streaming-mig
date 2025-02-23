@@ -3,6 +3,7 @@ import aiohttp
 import asyncio
 from pathlib import Path
 from collections import deque
+from src.rules import PathRule
 
 
 def pair(iterator, num=2):
@@ -13,16 +14,10 @@ def pair(iterator, num=2):
         yield tuple(que)
 
 class DownLoader:
-    def __init__(self, output_file_path):
-        self.output_file_path = Path(output_file_path)
+    def __init__(self, path_rules: PathRule):
+        self.path_rules = path_rules
         self.num = 10
         
-    def get_output_file_path(self, video_id):
-        dir_path = self.output_file_path / f'{video_id}'
-        dir_path.mkdir(parents=True, exist_ok=True)
-        
-        return dir_path / 'src.mp4'
-    
     def download_video(self, *args, **kwargs):
         async_task = self.async_download_video(*args, **kwargs)
         asyncio.run(async_task)
@@ -52,7 +47,7 @@ class DownLoader:
         print(f"{part_file_path} 다운로드 완료, file size|{part_file_size}bytes")
 
     def merge_parts(self, video_id):
-        output_file_path = self.get_output_file_path(video_id)
+        output_file_path: Path = self.path_rules.get_real_video_path(video_id)
         
         # 기존 파일 삭제
         if output_file_path.exists():
@@ -87,8 +82,11 @@ class DownLoader:
 
 
 if __name__ == '__main__':    
+    # 경로 규칙
+    rule = PathRule()
+    
     # 다운로더 설정
-    downloader = DownLoader('./static')
+    downloader = DownLoader(rule)
 
     # 비동기 작업 실행
     headers = dict()

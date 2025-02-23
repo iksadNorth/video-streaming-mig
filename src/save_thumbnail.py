@@ -1,11 +1,12 @@
 import asyncio
-from pathlib import Path
+from src.rules import PathRule
 import json
+from functools import partial
 
 
 class ThumbnailHandler():
-    def __init__(self, static_path: str):
-        self.static_path = Path(static_path)
+    def __init__(self, path_rules: PathRule):
+        self.path_rules = path_rules
     
     @classmethod
     def get_thumbnail_path(self, video_id, idx):
@@ -46,8 +47,8 @@ class ThumbnailHandler():
 
     # 여러 개의 프레임을 동시에 추출
     async def aysnc_extract_frame_parallel(self, id, num_thumbnail=10):
-        video_path = self.static_path / self.get_video_path(id)
-        output_path = lambda idx: self.static_path / self.get_thumbnail_path(video_id=id, idx=idx)
+        video_path = self.path_rules.get_real_video_path(id)
+        output_path = partial(self.path_rules.get_real_thumbnail_path, video_id=id)
         
         total_duration = await self.get_total_duration(video_path)
         
@@ -55,7 +56,7 @@ class ThumbnailHandler():
         iterator = (total_duration * (i / num_thumbnail) for i in iterator)
         iterator = (int(i) for i in iterator)
         tasks = [
-            self.aysnc_extract_frame(video_path, output_path(idx), i) 
+            self.aysnc_extract_frame(video_path, output_path(idx=idx), i) 
             for idx, i in enumerate(iterator)
         ]
         
@@ -66,5 +67,8 @@ class ThumbnailHandler():
 
 
 if __name__ == '__main__':
-    handler = ThumbnailHandler('static')
-    handler.extract_frame_parallel('9202')
+    # 경로 규칙
+    rule = PathRule()
+    
+    handler = ThumbnailHandler(rule)
+    handler.extract_frame_parallel('0002')
