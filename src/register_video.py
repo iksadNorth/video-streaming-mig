@@ -1,4 +1,4 @@
-from src.down_loader import DownLoader
+from src.down_loader import GeneralDownLoader, YoutubeDownLoader
 from src.save_thumbnail import ThumbnailHandler
 from src.db.database import get_db
 from src.model import Video
@@ -13,7 +13,7 @@ class VideoRegister:
         self.headers = headers
         self.headers['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36'
         
-        self.downloader = DownLoader(self.rule)
+        self.downloader = GeneralDownLoader(self.rule)
         self.thumbnail_handler = ThumbnailHandler(self.rule)
     
     def get_video_id(self, db: Session, meta: dict = dict()):
@@ -53,12 +53,19 @@ class VideoRegister:
                 self.rollback(video_entity, db)
                 continue
 
+class YoutubeVideoRegister(VideoRegister):
+    def __init__(self):
+        super().__init__()
+        self.downloader = YoutubeDownLoader(self.rule)
+
 
 if __name__ == '__main__':
     # 썸네일 추출함. pk값에 대해 파일경로 업데이트 시킴
-    url = 'https://media.istockphoto.com/id/1868318353/ko/%EB%B9%84%EB%94%94%EC%98%A4/%EC%95%84%EC%B9%A8-%EC%82%B0%EB%A7%A5%EC%97%90%EC%84%9C-%ED%92%80%EB%B0%AD-%EC%96%B8%EB%8D%95%EC%9D%84-%EC%A1%B0%EA%B9%85%ED%95%98%EB%8A%94-%EC%97%AC%EC%9E%90.mp4?s=mp4-640x640-is&k=20&c=esvoXdkKGq101himBy4yQrAmMyHcJhRnpozpGdG0_pM='
+    # url = 'https://media.istockphoto.com/id/1868318353/ko/%EB%B9%84%EB%94%94%EC%98%A4/%EC%95%84%EC%B9%A8-%EC%82%B0%EB%A7%A5%EC%97%90%EC%84%9C-%ED%92%80%EB%B0%AD-%EC%96%B8%EB%8D%95%EC%9D%84-%EC%A1%B0%EA%B9%85%ED%95%98%EB%8A%94-%EC%97%AC%EC%9E%90.mp4?s=mp4-640x640-is&k=20&c=esvoXdkKGq101himBy4yQrAmMyHcJhRnpozpGdG0_pM='
+    url = 'https://www.youtube.com/watch?v=2V6lvCUPT8I'
     meta = {
         'title': 'test_video',
     };
-    register = VideoRegister()
+    # register = VideoRegister()
+    register = YoutubeVideoRegister()
     register.regist(url, meta)

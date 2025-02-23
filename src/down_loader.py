@@ -5,6 +5,8 @@ from pathlib import Path
 from collections import deque
 from src.rules import PathRule
 
+from yt_dlp import YoutubeDL
+
 
 def pair(iterator, num=2):
     que = deque([], maxlen=num)
@@ -14,6 +16,23 @@ def pair(iterator, num=2):
         yield tuple(que)
 
 class DownLoader:
+    def download_video(self, url: str, headers, video_id):
+        pass
+
+class YoutubeDownLoader(DownLoader):
+    def __init__(self, path_rules: PathRule):
+        self.path_rules = path_rules
+    
+    def download_video(self, url: str, headers, video_id):
+        output_file_path = self.path_rules.get_real_video_path(video_id)
+        ydl_opts = {
+            'format': 'best',
+            'outtmpl': str(output_file_path),
+        }
+        with YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+
+class GeneralDownLoader(DownLoader):
     def __init__(self, path_rules: PathRule):
         self.path_rules = path_rules
         self.num = 10
@@ -86,12 +105,14 @@ if __name__ == '__main__':
     rule = PathRule()
     
     # 다운로더 설정
-    downloader = DownLoader(rule)
+    # downloader = GeneralDownLoader(rule)
+    downloader = YoutubeDownLoader(rule)
 
     # 비동기 작업 실행
     headers = dict()
     headers['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36'
-    url = 'https://media.istockphoto.com/id/1868318353/ko/%EB%B9%84%EB%94%94%EC%98%A4/%EC%95%84%EC%B9%A8-%EC%82%B0%EB%A7%A5%EC%97%90%EC%84%9C-%ED%92%80%EB%B0%AD-%EC%96%B8%EB%8D%95%EC%9D%84-%EC%A1%B0%EA%B9%85%ED%95%98%EB%8A%94-%EC%97%AC%EC%9E%90.mp4?s=mp4-640x640-is&k=20&c=esvoXdkKGq101himBy4yQrAmMyHcJhRnpozpGdG0_pM='
+    # url = 'https://media.istockphoto.com/id/1868318353/ko/%EB%B9%84%EB%94%94%EC%98%A4/%EC%95%84%EC%B9%A8-%EC%82%B0%EB%A7%A5%EC%97%90%EC%84%9C-%ED%92%80%EB%B0%AD-%EC%96%B8%EB%8D%95%EC%9D%84-%EC%A1%B0%EA%B9%85%ED%95%98%EB%8A%94-%EC%97%AC%EC%9E%90.mp4?s=mp4-640x640-is&k=20&c=esvoXdkKGq101himBy4yQrAmMyHcJhRnpozpGdG0_pM='
+    url = 'https://www.youtube.com/watch?v=2V6lvCUPT8I'
     video_id = '0002'
 
     downloader.download_video(url, headers, video_id)
