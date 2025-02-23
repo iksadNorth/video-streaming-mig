@@ -1,46 +1,70 @@
 import asyncio
-import cv2
-
-def get_total_frames(video_path):
-    cap = cv2.VideoCapture(video_path)
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    cap.release()
-    return total_frames
-
-async def extract_frame(video_path, output_path, target_frame):
-    command = f'ffmpeg -i {video_path} -vf "select=eq(n\\,{target_frame})" -vsync vfr {output_path}'
-
-    process = await asyncio.create_subprocess_shell(
-        command,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
-    )
-
-    stdout, stderr = await process.communicate()
-
-    if process.returncode == 0:
-        print(f"Extracted frame {target_frame}, saved at {output_path}")
-    else:
-        print(f"Error extracting frame: {stderr.decode()}")
+from pathlib import Path
+import json
 
 
-# 여러 개의 프레임을 동시에 추출
-async def extract_frame_parallel(id, num_thumbnail=10):
-    video_path = f"static/{id}/src.mp4"
-    output_path = f"static/{id}"
+class ThumbnailHandler():
+    def __init__(self, static_path: str):
+        self.static_path = Path(static_path)
     
-    total_frames = get_total_frames(video_path)
+    @classmethod
+    def get_thumbnail_path(self, video_id, idx):
+        return f"{video_id}/thumbnail_{idx}.jpg"
     
-    iterator = range(num_thumbnail)
-    iterator = (total_frames * (i / num_thumbnail) for i in iterator)
-    iterator = (int(i) for i in iterator)
-    tasks = [
-        extract_frame(video_path, f"{output_path}/thumbnail_{idx}.jpg", i) 
-        for idx, i in enumerate(iterator)
-    ]
+    @classmethod
+    def get_video_path(self, video_id):
+        return f"{video_id}/src.mp4"
     
-    await asyncio.gather(*tasks)
+    async def get_total_duration(self, video_path):
+        cmd = f"ffprobe -v error -select_streams v:0 -show_entries format=duration -of json {video_path}"
+        process = await asyncio.subprocess.create_subprocess_shell(
+            cmd, 
+            stdout=asyncio.subprocess.PIPE, 
+            stderr=asyncio.subprocess.PIPE
+        )
+
+        stdout, stderr = await process.communicate()
+        duration = json.loads(stdout.decode())["format"]["duration"]
+        
+        return float(duration)
+
+    async def aysnc_extract_frame(self, video_path, output_path, seek_time):
+        command = f'ffmpeg -ss {seek_time} -i {video_path} -frames:v 1 {output_path}'
+
+        process = await asyncio.create_subprocess_shell(
+            command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+
+        stdout, stderr = await process.communicate()
+
+        if process.returncode == 0:
+            print(f"Extracted Seek Time {seek_time}, saved at {output_path}")
+        else:
+            print(f"Error extracting Seek Time: {stderr.decode()}")
+
+    # 여러 개의 프레임을 동시에 추출
+    async def aysnc_extract_frame_parallel(self, id, num_thumbnail=10):
+        video_path = self.static_path / self.get_video_path(id)
+        output_path = lambda idx: self.static_path / self.get_thumbnail_path(video_id=id, idx=idx)
+        
+        total_duration = await self.get_total_duration(video_path)
+        
+        iterator = range(num_thumbnail)
+        iterator = (total_duration * (i / num_thumbnail) for i in iterator)
+        iterator = (int(i) for i in iterator)
+        tasks = [
+            self.aysnc_extract_frame(video_path, output_path(idx), i) 
+            for idx, i in enumerate(iterator)
+        ]
+        
+        await asyncio.gather(*tasks)
+    
+    def extract_frame_parallel(self, *args, **kwargs):
+        asyncio.run(self.aysnc_extract_frame_parallel(*args, **kwargs))
 
 
 if __name__ == '__main__':
-    asyncio.run(extract_frame_parallel('9202'))
+    handler = ThumbnailHandler('static')
+    handler.extract_frame_parallel('9202')
