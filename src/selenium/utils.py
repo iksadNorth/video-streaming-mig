@@ -109,19 +109,19 @@ class YoutubeUtils(SeleniumUtils):
         return f'https://www.youtube.com/shorts/{shorts_id}'
 
 
-class ToolBox:
+class CrawlingToolBox(SeleniumUtils):
     def __init__(self):
-        self.crawler = SeleniumUtils()
-        self.scroll = ScrollUtils(self.crawler.driver)
-        self.youtube = YoutubeUtils(self.crawler.driver)
+        super().__init__()
+        self.scroll = ScrollUtils(self.driver)
+        self.youtube = YoutubeUtils(self.driver)
     
     @synchronized_method
     def yield_video_id(self, url, max_num_scroll=1000):
-        self.crawler.navigate(url)
+        self.navigate(url)
     
         hash_table_id = set()
         for _ in range(max_num_scroll):
-            soup = self.crawler.get_html()
+            soup = self.get_html()
             arr = self.youtube.get_arr_video(soup)
             for video_id in arr:
                 if not video_id: continue
